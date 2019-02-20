@@ -156,6 +156,8 @@ class Options {
 
     /** @private {?capabilities.ProxyConfig} */
     this.proxy_ = null;
+
+    this.android_ = {};
   }
 
   /**
@@ -319,7 +321,63 @@ class Options {
       }
     }
 
+    if (this.android_.androidPackage) {
+      Object.assign(firefoxOptions, this.android_);
+    }
+
     return caps;
+  }
+
+
+  /**
+   * Sets the name of the activity hosting an Android GeckoView. This
+   * option must be set to connect to an [Android
+   * GeckoView](https://mozilla.github.io/geckoview/) via
+   * [geckodriver](https://firefox-source-docs.mozilla.org/testing/geckodriver/geckodriver/).
+   *
+   * @param {string} name The activity name.
+   * @return {!Options} A self reference.
+   */
+  androidActivity(name) {
+    this.android_.androidActivity = name;
+    return this;
+  }
+
+  /**
+   * Sets the device serial number to connect to via ADB. If not specified,
+   * geckodriver will select an unused device at random. An error will be
+   * returned if all devices already have active sessions.
+   *
+   * @param {string} serial The device serial number to connect to.
+   * @return {!Options} A self reference.
+   */
+  androidDeviceSerial(serial) {
+    this.android_.androidDeviceSerial = serial;
+    return this;
+  }
+
+  /**
+   * Configures geckodriver to launch Firefox on Android via adb. This
+   * function is shorthand for
+   * {@link #androidPackage options.androidPackage('org.mozilla.firefox')}.
+   * @return {!Options} A self reference.
+   */
+  androidFirefox() {
+    return this
+      .androidPackage('org.mozilla.firefox')
+      .androidActivity('.App');
+  }
+
+  /**
+   * Sets the package name of the Firefox or GeckoView app.
+   *
+   * @param {?string} pkg The package to connect to, or `null` to disable Android
+   *     and switch back to using desktop Firefox.
+   * @return {!Options} A self reference.
+   */
+  androidPackage(pkg) {
+    this.android_.androidPackage = pkg;
+    return this;
   }
 }
 
