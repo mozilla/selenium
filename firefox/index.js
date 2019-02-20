@@ -379,6 +379,19 @@ class Options {
     this.android_.androidPackage = pkg;
     return this;
   }
+
+  /**
+   * Specify additional command line arguments that should be used
+   * when starting the Android intent.  See
+   * https://developer.android.com/studio/command-line/adb#IntentSpec.
+   *
+   * @param {...(string|!Array<string>)} args The arguments to include.
+   * @return {!Options} A self reference.
+   */
+  androidAddIntentArguments(...args) {
+    this.android_.androidIntentArguments = (this.android_.androidIntentArguments || []).concat(...args);
+    return this;
+  }
 }
 
 
