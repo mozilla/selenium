@@ -515,6 +515,63 @@ class ServiceBuilder extends remote.DriverService.Builder {
   enableVerboseLogging(opt_trace) {
     return this.addArguments(opt_trace ? '-vv' : '-v');
   }
+
+  // TODO:
+  // /**
+  //  * Sets the path of the log file the driver should log to. If a log file is
+  //  * not specified, the driver will log to stderr.
+  //  * @param {string} path Path of the log file to use.
+  //  * @return {!ServiceBuilder} A self reference.
+  //  */
+  // loggingTo(path) {
+  //   return this.addArguments('--log-path=' + path);
+  // }
+
+  // TODO:
+  // /**
+  //  * Sets which port adb is listening to. _The GeckoDriver will connect to adb
+  //  * if an {@linkplain Options#androidPackage Android session} is requested, but
+  //  * adb **must** be started beforehand._
+  //  *
+  //  * @param {number} port Which port adb is running on.
+  //  * @return {!ServiceBuilder} A self reference.
+  //  */
+  // setAdbPort(port) {
+  //   return this.addArguments('--adb-port=' + port);
+  // }
+}
+
+
+/** @type {remote.DriverService} */
+let defaultService = null;
+
+
+/**
+ * Sets the default service to use for new GeckoDriver instances.
+ * @param {!remote.DriverService} service The service to use.
+ * @throws {Error} If the default service is currently running.
+ */
+function setDefaultService(service) {
+  if (defaultService && defaultService.isRunning()) {
+    throw Error(
+        'The previously configured GeckoDriver service is still running. ' +
+        'You must shut it down before you may adjust its configuration.');
+  }
+  defaultService = service;
+}
+
+
+/**
+ * Returns the default GeckoDriver service. If such a service has not been
+ * configured, one will be constructed using the default configuration for
+ * a GeckoDriver executable found on the system PATH.
+ * @return {!remote.DriverService} The default GeckoDriver service.
+ */
+function getDefaultService() {
+  if (!defaultService) {
+    defaultService = new ServiceBuilder().build();
+  }
+  return defaultService;
 }
 
 
@@ -529,11 +586,13 @@ class Driver extends webdriver.WebDriver {
    *    configuration options for this driver, specified as either an
    *    {@link Options} or {@link capabilities.Capabilities}, or as a raw hash
    *    object.
-   * @param {(http.Executor|remote.DriverService)=} opt_executor Either a
+   * @param {(remote.DriverService|http.Executor)=} opt_serviceExecutor Either a
    *   pre-configured command executor to use for communicating with an
-   *   externally managed remote end (which is assumed to already be running),
-   *   or the `DriverService` to use to start the geckodriver in a child
-   *   process.
+   *   externally managed remote end (which is assumed to already be
+   *   running), or the `DriverService` to use to start the
+   *   geckodriver in a child process.  If neither is provided, the
+   *   {@linkplain ##getDefaultService default service} will be used
+   *   by default.
    *
    *   If an executor is provided, care should e taken not to use reuse it with
    *   other clients as its internal command mappings will be updated to support
@@ -547,7 +606,7 @@ class Driver extends webdriver.WebDriver {
    *     configured to use the legacy FirefoxDriver from the Selenium project.
    * @return {!Driver} A new driver instance.
    */
-  static createSession(opt_config, opt_executor, opt_flow) {
+  static createSession(opt_config, opt_serviceExecutor, opt_flow) {
     let caps;
     if (opt_config instanceof Options) {
       caps = opt_config.toCapabilities();
@@ -564,14 +623,11 @@ class Driver extends webdriver.WebDriver {
     let executor;
     let onQuit;
 
-    if (opt_executor instanceof http.Executor) {
-      executor = opt_executor;
+    if (opt_serviceExecutor instanceof http.Executor) {
+      executor = opt_serviceExecutor;
       configureExecutor(executor);
-    } else if (opt_executor instanceof remote.DriverService) {
-      executor = createExecutor(opt_executor.start());
-      onQuit = () => opt_executor.kill();
     } else {
-      let service = new ServiceBuilder().build();
+      let service = opt_serviceExecutor || getDefaultService();
       executor = createExecutor(service.start());
       onQuit = () => service.kill();
     }
@@ -632,3 +688,5 @@ exports.Driver = Driver;
 exports.Options = Options;
 exports.Profile = Profile;
 exports.ServiceBuilder = ServiceBuilder;
+exports.getDefaultService = getDefaultService;
+exports.setDefaultService = setDefaultService;
